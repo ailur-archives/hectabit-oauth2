@@ -197,7 +197,7 @@ async def apiauthenticate():
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
         conn = get_db_connection()
-        secretkey = conn.execute("SELECT secret FROM userdata WHERE appId = ? AND creator = ? LIMIT 1", (str(appId),int(user)))
+        secretkey = conn.execute("SELECT secret FROM userdata WHERE appId = ? AND creator = ? LIMIT 1", (str(appId),int(user["id"])))
         if secretkey:
             return secretkey
         else:
@@ -216,7 +216,7 @@ async def apicreateauth():
 
         conn = get_db_connection()
         conn.execute("INSERT INTO userdata (appId, creator, secret) VALUES (?, ?, ?)",
-                         (str(appId),int(user),str(secret)))
+                         (str(appId),int(user["id"]),str(secret)))
         conn.commit()
         conn.close()
 
