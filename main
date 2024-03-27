@@ -197,9 +197,12 @@ async def apiauthenticate():
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
         conn = get_db_connection()
-        secretkey = conn.execute("SELECT secret FROM userdata WHERE appId = ? AND creator = ? LIMIT 1", (str(appId),int(user["id"])))
+        secretkey = {
+            "key": str(conn.execute("SELECT secret FROM userdata WHERE appId = ? AND creator = ? LIMIT 1", (str(appId),int(user["id"]))))
+        }
+
         if secretkey:
-            return secretkey
+            return secretkey, 200
         else:
             return {}, 400
 
@@ -219,8 +222,10 @@ async def apicreateauth():
                          (str(appId),int(user["id"]),str(secret)))
         conn.commit()
         conn.close()
-
-        return secret, 200
+        secretkey = {
+            "key": secret
+        }
+        return secretkey, 200
 
 @app.route("/api/deleteaccount", methods=("GET", "POST"))
 async def apideleteaccount():
