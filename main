@@ -1,0 +1,354 @@
+#!/usr/bin/python3
+import os
+import sqlite3
+import time
+import secrets
+import configparser
+import asyncio
+from hypercorn.config import Config
+from hypercorn.asyncio import serve
+from werkzeug.security import generate_password_hash, check_password_hash
+from quart import Quart, render_template, request, url_for, flash, redirect, session, make_response, send_from_directory, stream_with_context, Response, request
+
+# Parse configuration file, and check if anything is wrong with it
+if not os.path.exists("config.ini"):
+    print("config.ini does not exist")
+    quit(1)
+
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+HOST = config["config"]["HOST"]
+PORT = config["config"]["PORT"]
+SECRET_KEY = config["config"]["SECRET_KEY"]
+MAX_STORAGE = config["config"]["MAX_STORAGE"]
+
+if SECRET_KEY == "supersecretkey" or SECRET_KEY == "placeholder":
+    print("[WARNING] Secret key not set")
+
+# Define Quart
+app = Quart(__name__)
+app.config["SECRET_KEY"] = SECRET_KEY
+
+# Database functions
+def get_db_connection():
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def get_user(id):
+    conn = get_db_connection()
+    post = conn.execute("SELECT * FROM users WHERE id = ?",
+                        (id,)).fetchone()
+    conn.close()
+    if post is None:
+        return None
+    return post
+
+def get_session(id):
+    conn = get_db_connection()
+    post = conn.execute("SELECT * FROM sessions WHERE session = ?",
+                        (id,)).fetchone()
+    conn.close()
+    if post is None:
+        return None
+    return post
+
+def get_session_from_sessionid(id):
+    conn = get_db_connection()
+    post = conn.execute("SELECT * FROM sessions WHERE sessionid = ?",
+                        (id,)).fetchone()
+    conn.close()
+    if post is None:
+        return None
+    return post
+
+def check_username_taken(username):
+    conn = get_db_connection()
+    post = conn.execute("SELECT * FROM users WHERE lower(username) = ?",
+                        (username.lower(),)).fetchone()
+    conn.close()
+    if post is None:
+        return None
+    return post["id"]
+
+# Disable CORS
+@app.after_request
+async def add_cors_headers(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "*")
+    response.headers.add("Access-Control-Allow-Methods", "*")
+    return response
+
+@app.route("/api/version", methods=("GET", "POST"))
+async def apiversion():
+    return "Burgerauth Version 1.2"
+
+@app.route("/api/signup", methods=("GET", "POST"))
+async def apisignup():
+    if request.method == "POST":
+        data = await request.get_json()
+        username = data["username"]
+        password = data["password"]
+
+        if username == "":
+            return {}, 422
+
+        if len(username) > 20:
+            return {}, 422
+
+        if not username.isalnum():
+            return {}, 422
+
+        if password == "":
+            return {}, 422
+
+        if len(password) < 14:
+            return {}, 422
+
+        if not check_username_taken(username) == None:
+            return {}, 409
+
+        hashedpassword = generate_password_hash(password)
+
+        conn = get_db_connection()
+        conn.execute("INSERT INTO users (username, password, created) VALUES (?, ?, ?)",
+                     (username, hashedpassword, str(time.time())))
+        conn.commit()
+        conn.close()
+
+        userID = check_username_taken(username)
+        user = get_user(userID)
+
+        randomCharacters = secrets.token_hex(512)
+
+        conn = get_db_connection()
+        conn.execute("INSERT INTO sessions (session, id, device) VALUES (?, ?, ?)",
+                     (randomCharacters, userID, request.headers.get("user-agent")))
+        conn.commit()
+        conn.close()
+
+        return {
+            "key": randomCharacters
+        }, 200
+
+@app.route("/api/login", methods=("GET", "POST"))
+async def apilogin():
+    if request.method == "POST":
+        data = await request.get_json()
+        username = data["username"]
+        password = data["password"]
+        passwordchange = data["passwordchange"]
+        newpass = data["newpass"]
+
+        check_username_thing = check_username_taken(username)
+
+        if check_username_thing == None:
+            return {}, 401
+
+        userID = check_username_taken(username)
+        user = get_user(userID)
+
+        if not check_password_hash(user["password"], (password)):
+            return {}, 401
+
+        randomCharacters = secrets.token_hex(512)
+
+        conn = get_db_connection()
+        conn.execute("INSERT INTO sessions (session, id, device) VALUES (?, ?, ?)",
+                     (randomCharacters, userID, request.headers.get("user-agent")))
+        conn.commit()
+        conn.close()
+
+        if passwordchange == "yes":
+            hashedpassword = generate_password_hash(newpass)
+            conn = get_db_connection()
+            conn.execute("UPDATE users SET password = ? WHERE username = ?", (hashedpassword, username))
+            conn.commit()
+            conn.close()
+
+        return {
+            "key": randomCharacters,
+        }, 200
+
+
+@app.route("/api/userinfo", methods=("GET", "POST"))
+async def apiuserinfo():
+    if request.method == "POST":
+        data = await request.get_json()
+        secretKey = data["secretKey"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+        datatemplate = {
+            "username": user["username"],
+            "id": user["id"],
+            "created": user["created"]
+        }
+        return datatemplate
+
+@app.route("/api/auth", methods=("GET", "POST"))
+async def apiauthenticate():
+    if request.method == "POST":
+        data = await request.get_json()
+        secretKey = data["secretKey"]
+        appId = data["appId"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+        conn = get_db_connection()
+        secretkey = conn.execute("SELECT secret FROM userdata WHERE appId = ? AND creator = ? LIMIT 1", (appId,user))
+        if secretkey:
+            return secretkey
+        else:
+            return {}, 400
+
+@app.route("/api/newauth", methods=("GET", "POST"))
+async def apicreateauth():
+    if request.method == "POST":
+        data = await request.get_json()
+        appId = data["appId"]
+        secretKey = data["secretKey"]
+        secret = secrets.token_hex(512)
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+
+        conn = get_db_connection()
+        conn.execute("INSERT INTO userdata (appId, creator, secret) VALUES (?, ?, ?)",
+                         (appId,user,secret))
+        conn.commit()
+        conn.close()
+
+        return secret, 200
+
+@app.route("/api/deleteaccount", methods=("GET", "POST"))
+async def apideleteaccount():
+    if request.method == "POST":
+        data = await request.get_json()
+        secretKey = data["secretKey"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+
+        conn = get_db_connection()
+        conn.execute("DELETE FROM userdata WHERE creator = ?", (userCookie["id"],))
+        conn.commit()
+        conn.close()
+
+        conn = get_db_connection()
+        conn.execute("DELETE FROM users WHERE id = ?", (userCookie["id"],))
+        conn.commit()
+        conn.close()
+
+        return {}, 200
+
+@app.route("/api/sessions/list", methods=("GET", "POST"))
+async def apisessionslist():
+    if request.method == "POST":
+        data = await request.get_json()
+        secretKey = data["secretKey"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+
+        conn = get_db_connection()
+        sessions = conn.execute("SELECT * FROM sessions WHERE id = ? ORDER BY id DESC;", (user["id"],)).fetchall()
+        conn.close()
+
+        datatemplate = []
+
+        for x in sessions:
+            device = x["device"]
+            thisSession = False
+            if (x["session"] == secretKey):
+                thisSession = True
+            sessiontemplate = {
+                "id": x["sessionid"],
+                "thisSession": thisSession,
+                "device": device
+            }
+            datatemplate.append(sessiontemplate)
+
+        return datatemplate, 200
+
+@app.route("/api/sessions/remove", methods=("GET", "POST"))
+async def apisessionsremove():
+    if request.method == "POST":
+        data = await request.get_json()
+        secretKey = data["secretKey"]
+        sessionId = data["sessionId"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+
+        session = get_session_from_sessionid(sessionId)
+
+        if (session != None):
+            if (user["id"] == session["id"]):
+                conn = get_db_connection()
+                conn.execute("DELETE FROM sessions WHERE sessionid = ?", (session["sessionid"],))
+                conn.commit()
+                conn.close()
+
+                return {}, 200
+            else:
+                return {}, 403
+        else:
+            return {}, 422
+
+
+@app.route("/listusers/<secretkey>", methods=("GET", "POST"))
+def listusers(secretkey):
+    if secretkey == SECRET_KEY:
+        conn = get_db_connection()
+        users = conn.execute("SELECT * FROM users").fetchall()
+        conn.close()
+        thing = ""
+        for x in users:
+            thing = str(x["id"]) + " - " + x["username"] + " - " + str(get_space(x["id"])) + "<br>" + thing
+
+        return thing
+    else:
+        return redirect("/")
+
+@app.errorhandler(500)
+async def burger(e):
+    return {}, 500
+
+@app.errorhandler(404)
+async def burger(e):
+    return {}, 404
+
+@app.route("/")
+async def index():
+    return redirect("/login", code=302)
+
+@app.route("/login")
+async def login():
+    return await render_template("login.html")
+
+@app.route("/signup")
+async def signup():
+    return await render_template("signup.html")
+
+@app.route("/logout")
+async def logout():
+    return await render_template("logout.html")
+
+@app.route("/homeserver")
+async def homeserver():
+    return await render_template("homeserver.html")
+
+@app.route("/app")
+async def mainapp():
+    return await render_template("main.html")
+
+# Start server
+hypercornconfig = Config()
+hypercornconfig.bind = (HOST + ":" + PORT)
+
+if __name__ == "__main__":
+    print("[INFO] Server started")
+    asyncio.run(serve(app, hypercornconfig))
+    print("[INFO] Server stopped")
