@@ -10,7 +10,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE userdata (
-    creator INTEGER NOT NULL,
+    creator TEXT NOT NULL,
     appId TEXT NOT NULL,
     secret TEXT NOT NULL
 );
