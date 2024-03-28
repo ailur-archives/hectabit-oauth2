@@ -214,7 +214,6 @@ async def apiauthenticate():
         data = await request.get_json()
         secretKey = data["secretKey"]
         appId = data["appId"]
-        state = data["state"]
 
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
