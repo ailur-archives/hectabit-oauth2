@@ -21,3 +21,12 @@ CREATE TABLE sessions (
     id INTEGER NOT NULL,
     device TEXT NOT NULL DEFAULT "?"
 );
+
+CREATE TABLE logins (
+    appId TEXT NOT NULL,
+    authed INTEGER NOT NULL,
+    secret TEXT NOT NULL,
+    code TEXT NOT NULL,
+    nextcode TEXT NOT NULL,
+    creator INTEGER NOT NULL
+)

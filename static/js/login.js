@@ -1,10 +1,10 @@
 if (localStorage.getItem("DONOTSHARE-secretkey") !== null) {
-    window.location.replace("../app")
+    window.location.replace("/app" + window.location.search)
     document.body.innerHTML = "Redirecting..."
     throw new Error();
 }
 if (localStorage.getItem("DONOTSHARE-password") !== null) {
-    window.location.replace("../app")
+    window.location.replace("/app" + window.location.search)
     document.body.innerHTML = "Redirecting..."
     throw new Error();
 }
@@ -139,7 +139,7 @@ signupButton.addEventListener("click", (event) => {
                             localStorage.setItem("DONOTSHARE-secretkey", responseData["key"])
                             localStorage.setItem("DONOTSHARE-password", await hashwasm.sha512(password))
 
-                            window.location.href = "../app"
+                            window.location.href = "/app" + window.location.search
                         }
                         else if (response.status == 401) {
                             console.log("Trying oldhash")
@@ -163,7 +163,7 @@ signupButton.addEventListener("click", (event) => {
                                             localStorage.setItem("DONOTSHARE-secretkey", responseData["key"])
                                             localStorage.setItem("DONOTSHARE-password", await hashwasm.sha512(password))
 
-                                            window.location.href = "../app/"
+                                            window.location.href = "/app" + window.location.search
                                         }
                                         else if (response.status == 401) {
                                             statusBox.innerText = "Wrong username or password..."
@@ -197,3 +197,19 @@ backButton.addEventListener("click", (event) => {
 });
 
 showInput(0)
+
+document.getElementById("signuprdirButton").addEventListener("click", function(event) {
+    event.preventDefault();
+
+    var queryString = window.location.search;
+    var newURL = "/signup" + queryString;
+    window.location.href = newURL;
+});
+
+document.getElementById("privacyButton").addEventListener("click", function(event) {
+    event.preventDefault();
+
+    var queryString = window.location.search;
+    var newURL = "/privacy" + queryString;
+    window.location.href = newURL;
+});

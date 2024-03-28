@@ -72,6 +72,12 @@ def check_username_taken(username):
         return None
     return post["id"]
 
+async def oauth2_token_refresh(secret, appId):
+    while True:
+        conn = get_db_connection()
+        conn.execute("UPDATE logins SET code = ?, nextcode = ? WHERE appId = ? AND secret = ?", (str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(secret))).fetchone())), str(secrets.token_hex(512)), str(appId), str(secret))
+        await asyncio.sleep(3600)
+
 # Disable CORS
 @app.after_request
 async def add_cors_headers(response):
@@ -193,16 +199,54 @@ async def apiauthenticate():
         data = await request.get_json()
         secretKey = data["secretKey"]
         appId = data["appId"]
+        state = data["state"]
 
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
         conn = get_db_connection()
-        secretkey = {
-            "key": str(conn.execute("SELECT secret FROM userdata WHERE appId = ? AND creator = ? LIMIT 1", (str(appId),int(user["id"]))))
-        }
+        secretkey = str(secrets.token_hex(512))
+
+        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId)))).fetchone()
+        if not str(clientidcheck) == str(appId):
+            return {}, 401
+
+        conn.execute("INSERT INTO logins (appId, authed, secret, code, nextcode, creator) VALUES (?, ?, ?, ?, ?, ?)",
+                         (str(appId), int(int(time.time()) + 3600), int(0), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"])))
+        conn.commit()
+        conn.close()
 
         if secretkey:
             return secretkey, 200
+        else:
+            return {}, 400
+
+@app.route("/api/tokenauth", methods=("GET", "POST"))
+async def apitokenexchange():
+    if request.method == "POST":
+        data = await request.get_json()
+        secret = data["client_secret"]
+        appId = data["client_id"]
+        code = data["code"]
+
+        conn = get_db_connection()
+        access_token = {
+            "access_token": str(conn.execute("SELECT secret FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()),
+            "token_type": "bearer",
+            "expires_in": 3600,
+            "refresh_token": str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone())
+        }
+
+        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId)))).fetchone()
+        if not str(clientidcheck) == str(appId):
+            return {}, 401
+
+        secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId)))).fetchone()
+        if not str(secretcheck) == str(secret):
+            return {}, 402
+
+        if secretkey:
+            asyncio.run(oauth2_token_refresh(str(conn.execute("SELECT secret FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()), appId))
+            return access_token, 200
         else:
             return {}, 400
 
@@ -212,13 +256,22 @@ async def apicreateauth():
         data = await request.get_json()
         appId = data["appId"]
         secretKey = data["secretKey"]
-        secret = secrets.token_hex(512)
+        secret = str(secrets.token_hex(512))
+        while True:
+            if not secret == str(conn.execute("SELECT secret FROM oauth WHERE secret = ?", (str(secret)))).fetchone():
+                break
+            else:
+                secret = str(secrets.token_hex(512))
+                continue
+
+        if clientId == str(conn.execute("SELECT secret FROM oauth WHERE clientId = ?", (str(clientId)))).fetchone():
+            return 401
 
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
 
         conn = get_db_connection()
-        conn.execute("INSERT INTO userdata (appId, creator, secret) VALUES (?, ?, ?)",
+        conn.execute("INSERT INTO keys (appId, creator, secret) VALUES (?, ?, ?)",
                          (str(appId),int(user["id"]),str(secret)))
         conn.commit()
         conn.close()
