@@ -286,7 +286,7 @@ async def apicreateauth():
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
 
-        conn.execute("INSERT INTO keys (appId, creator, secret) VALUES (?, ?, ?)",
+        conn.execute("INSERT INTO oauth (appId, creator, secret) VALUES (?, ?, ?)",
                          (str(appId),int(user["id"]),str(secret)))
         conn.commit()
         conn.close()
