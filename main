@@ -220,8 +220,8 @@ async def apiauthenticate():
         conn = get_db_connection()
         secretkey = str(secrets.token_hex(512))
 
-        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
-        if not str(clientidcheck) == str(appId):
+        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
+        if not str(appidcheck) == str(appId):
             return {}, 401
 
         conn.execute("INSERT INTO logins (appId, secret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?)",
@@ -251,8 +251,8 @@ async def apitokenexchange():
             "id_token": str(conn.execute("SELECT openid FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone())
         }
 
-        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
-        if not str(clientidcheck) == str(appId):
+        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
+        if not str(appidcheck) == str(appId):
             return {}, 401
 
         secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
@@ -280,7 +280,7 @@ async def apicreateauth():
                 secret = str(secrets.token_hex(512))
                 continue
 
-        if clientId == str(conn.execute("SELECT secret FROM oauth WHERE clientId = ?", (str(clientId),)).fetchone()):
+        if appId == str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()):
             return 401
 
         userCookie = get_session(secretKey)
