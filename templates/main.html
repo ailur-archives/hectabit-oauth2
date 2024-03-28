@@ -41,8 +41,11 @@
       body: JSON.stringify(data)
     })
     .then(response => {
-        let code = await response.text()
-        window.location.replace(redirect_uri + "?code=" + code + "&state=" + state)
+        async function doStuff() {
+            let code = await response.text()
+            window.location.replace(redirect_uri + "?code=" + code + "&state=" + state)
+        }
+        doStuff()
     })
     .catch(error => {
       alert("Error sending data: " + error.message);
