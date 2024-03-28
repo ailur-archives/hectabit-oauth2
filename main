@@ -193,6 +193,21 @@ async def apiuserinfo():
         }
         return datatemplate
 
+@app.route("/userinfo", methods=("GET", "POST"))
+async def apiopeniduserinfo():
+    if request.method == "GET":
+        access_token = request.headers.get('Authorization').split(' ')[1]
+
+        conn = get_db_connection()
+        userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token))).fetchone())
+        user = get_user(userid)
+
+        datatemplate = {
+            "sub": user["username"],
+            "name": user["username"]
+        }
+        return datatemplate
+
 @app.route("/api/auth", methods=("GET", "POST"))
 async def apiauthenticate():
     if request.method == "POST":
@@ -210,8 +225,8 @@ async def apiauthenticate():
         if not str(clientidcheck) == str(appId):
             return {}, 401
 
-        conn.execute("INSERT INTO logins (appId, authed, secret, code, nextcode, creator) VALUES (?, ?, ?, ?, ?, ?)",
-                         (str(appId), int(int(time.time()) + 3600), int(0), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"])))
+        conn.execute("INSERT INTO logins (appId, authed, secret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                         (str(appId), int(int(time.time()) + 3600), int(0), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(secrets.token_hex(512))))
         conn.commit()
         conn.close()
 
@@ -233,7 +248,8 @@ async def apitokenexchange():
             "access_token": str(conn.execute("SELECT secret FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()),
             "token_type": "bearer",
             "expires_in": 3600,
-            "refresh_token": str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone())
+            "refresh_token": str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()),
+            "id_token": str(conn.execute("SELECT openid FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone())
         }
 
         clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId)))).fetchone()

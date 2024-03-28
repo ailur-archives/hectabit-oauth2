@@ -28,5 +28,6 @@ CREATE TABLE logins (
     secret TEXT NOT NULL,
     code TEXT NOT NULL,
     nextcode TEXT NOT NULL,
-    creator INTEGER NOT NULL
+    creator INTEGER NOT NULL,
+    openid TEXT NOT NULL
 )
