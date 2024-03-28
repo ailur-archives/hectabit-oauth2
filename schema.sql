@@ -25,10 +25,15 @@ CREATE TABLE sessions (
 
 CREATE TABLE logins (
     appId TEXT NOT NULL,
-    authed INTEGER NOT NULL,
     secret TEXT NOT NULL,
     code TEXT NOT NULL,
     nextcode TEXT NOT NULL,
     creator INTEGER NOT NULL,
     openid TEXT NOT NULL
+)
+
+CREATE TABLE oauth (
+    appId TEXT NOT NULL,
+    secret TEXT NOT NULL,
+    creator INTEGER NOT NULL
 )

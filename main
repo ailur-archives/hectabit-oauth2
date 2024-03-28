@@ -224,8 +224,8 @@ async def apiauthenticate():
         if not str(clientidcheck) == str(appId):
             return {}, 401
 
-        conn.execute("INSERT INTO logins (appId, authed, secret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                         (str(appId), int(int(time.time()) + 3600), int(0), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(secrets.token_hex(512))))
+        conn.execute("INSERT INTO logins (appId, secret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?)",
+                         (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(secrets.token_hex(512))))
         conn.commit()
         conn.close()
 
