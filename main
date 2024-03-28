@@ -272,6 +272,7 @@ async def apicreateauth():
         appId = data["appId"]
         secretKey = data["secretKey"]
         secret = str(secrets.token_hex(512))
+        conn = get_db_connection()
         while True:
             if not secret == str(conn.execute("SELECT secret FROM oauth WHERE secret = ?", (str(secret)))).fetchone():
                 break
@@ -285,7 +286,6 @@ async def apicreateauth():
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
 
-        conn = get_db_connection()
         conn.execute("INSERT INTO keys (appId, creator, secret) VALUES (?, ?, ?)",
                          (str(appId),int(user["id"]),str(secret)))
         conn.commit()
