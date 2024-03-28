@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS userdata;
 DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS logins;
+DROP TABLE IF EXISTS oauth;
 
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +31,7 @@ CREATE TABLE logins (
     nextcode TEXT NOT NULL,
     creator INTEGER NOT NULL,
     openid TEXT NOT NULL
-)
+);
 
 CREATE TABLE oauth (
     appId TEXT NOT NULL,
