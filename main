@@ -417,6 +417,10 @@ async def homeserver():
 async def mainapp():
     return await render_template("main.html")
 
+@app.route("/.well-known/openid-configuration")
+async def openid():
+    return await render_template("openid.json")
+
 # Start server
 hypercornconfig = Config()
 hypercornconfig.bind = (HOST + ":" + PORT)
