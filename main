@@ -199,7 +199,7 @@ async def apiopeniduserinfo():
         access_token = request.headers.get('Authorization').split(' ')[1]
 
         conn = get_db_connection()
-        userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token))).fetchone())
+        userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token),)).fetchone())
         user = get_user(userid)
 
         datatemplate = {
@@ -220,7 +220,7 @@ async def apiauthenticate():
         conn = get_db_connection()
         secretkey = str(secrets.token_hex(512))
 
-        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId))).fetchone())
+        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
         if not str(clientidcheck) == str(appId):
             return {}, 401
 
@@ -251,11 +251,11 @@ async def apitokenexchange():
             "id_token": str(conn.execute("SELECT openid FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone())
         }
 
-        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId))).fetchone())
+        clientidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
         if not str(clientidcheck) == str(appId):
             return {}, 401
 
-        secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId))).fetchone())
+        secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
         if not str(secretcheck) == str(secret):
             return {}, 402
 
@@ -274,13 +274,13 @@ async def apicreateauth():
         secret = str(secrets.token_hex(512))
         conn = get_db_connection()
         while True:
-            if not secret == str(conn.execute("SELECT secret FROM oauth WHERE secret = ?", (str(secret))).fetchone()):
+            if not secret == str(conn.execute("SELECT secret FROM oauth WHERE secret = ?", (str(secret),)).fetchone()):
                 break
             else:
                 secret = str(secrets.token_hex(512))
                 continue
 
-        if clientId == str(conn.execute("SELECT secret FROM oauth WHERE clientId = ?", (str(clientId))).fetchone()):
+        if clientId == str(conn.execute("SELECT secret FROM oauth WHERE clientId = ?", (str(clientId),)).fetchone()):
             return 401
 
         userCookie = get_session(secretKey)
