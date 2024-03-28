@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Send Data to example.org</title>
+  <title>Sending data...</title>
 </head>
 <body>
-  <h1>Send Data to example.org</h1>
+  <h1>Sending data...</h1>
 
   <script>
     // Function to parse URL parameters
@@ -42,6 +42,7 @@
       body: JSON.stringify(data)
     })
     .then(response => {
+        console.log(response);
         window.location.replace(redirect_uri + "?code=" + response + "&state=" + state)
     })
     .catch(error => {
