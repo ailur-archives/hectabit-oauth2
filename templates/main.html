@@ -6,7 +6,7 @@
   <title>Sending data...</title>
 </head>
 <body>
-  <h1>Sending data...</h1>
+  <p>Sending data...</p>
 
   <script>
     function oauth() {
@@ -45,7 +45,7 @@
         async function doStuff() {
           let code = await response.text()
           console.log(code)
-          console.log(redirect_uri + "?code=" + code + "&state=" + state)
+          window.location.replace(redirect_uri + "?code=" + code + "&state=" + state)
         }
         doStuff()
       })
@@ -53,7 +53,7 @@
         alert("Error sending data: " + error.message);
       });
     }
-    //oauth()
+    oauth()
   </script>
 </body>
 </html>
