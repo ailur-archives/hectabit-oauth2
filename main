@@ -75,7 +75,8 @@ def check_username_taken(username):
 async def oauth2_token_refresh(secret, appId):
     while True:
         conn = get_db_connection()
-        conn.execute("UPDATE logins SET code = ?, nextcode = ? WHERE appId = ? AND secret = ?", (str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(secret))).fetchone())), str(secrets.token_hex(512)), str(appId), str(secret))
+        conn.execute("UPDATE logins SET code = ?, nextcode = ? WHERE appId = ? AND secret = ?", (str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(secret))).fetchone()[0])), str(secrets.token_hex(512)), str(appId), str(secret))
+        conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(conn.execute("SELECT nextsecret FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(secret))).fetchone()[0])), str(secrets.token_hex(512)), str(appId), str(secret))
         await asyncio.sleep(3600)
 
 # Disable CORS
@@ -199,7 +200,7 @@ async def apiopeniduserinfo():
         access_token = request.headers.get('Authorization').split(' ')[1]
 
         conn = get_db_connection()
-        userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token),)).fetchone())
+        userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token),)).fetchone()[0])
         user = get_user(userid)
 
         datatemplate = {
@@ -220,12 +221,13 @@ async def apiauthenticate():
         conn = get_db_connection()
         secretkey = str(secrets.token_hex(512))
 
-        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
+        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
         if not str(appidcheck) == str(appId):
             return {}, 401
 
-        conn.execute("INSERT INTO logins (appId, secret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?)",
-                         (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(secrets.token_hex(512))))
+        conn.execute("INSERT INTO logins (appId, secret, newsecret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+                (str(appId), str(secretkey), str(secret.token_hex(512)), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(secrets.token_hex(512))))
+
         conn.commit()
         conn.close()
 
@@ -237,30 +239,34 @@ async def apiauthenticate():
 @app.route("/api/tokenauth", methods=("GET", "POST"))
 async def apitokenexchange():
     if request.method == "POST":
-        data = await request.get_json()
+        data = await request.form
         secret = data["client_secret"]
         appId = data["client_id"]
         code = data["code"]
 
         conn = get_db_connection()
-        access_token = {
-            "access_token": str(conn.execute("SELECT secret FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()),
-            "token_type": "bearer",
-            "expires_in": 3600,
-            "refresh_token": str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()),
-            "id_token": str(conn.execute("SELECT openid FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone())
-        }
 
-        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
+        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
         if not str(appidcheck) == str(appId):
             return {}, 401
 
-        secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone())
+        secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
         if not str(secretcheck) == str(secret):
             return {}, 402
 
+        newkey = str(secrets.token_hex(512))
+        conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(newkey), str(secrets.token_hex(512)), str(appId), str(secret)))
+
+        access_token = {
+            "access_token": str(conn.execute("SELECT code FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()[0]),
+            "token_type": "bearer",
+            "expires_in": 3600,
+            "refresh_token": newkey,
+            "id_token": str(conn.execute("SELECT openid FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()[0])
+        }
+
         if secretkey:
-            asyncio.run(oauth2_token_refresh(str(conn.execute("SELECT secret FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()), appId))
+            asyncio.run(oauth2_token_refresh(str(conn.execute("SELECT secret FROM logins WHERE appId = ? AND code = ?", (str(appId), str(code))).fetchone()[0]), appId))
             return access_token, 200
         else:
             return {}, 400
@@ -274,13 +280,13 @@ async def apicreateauth():
         secret = str(secrets.token_hex(512))
         conn = get_db_connection()
         while True:
-            if not secret == str(conn.execute("SELECT secret FROM oauth WHERE secret = ?", (str(secret),)).fetchone()):
+            if not secret == str(conn.execute("SELECT secret FROM oauth WHERE secret = ?", (str(secret),)).fetchone()[0]):
                 break
             else:
                 secret = str(secrets.token_hex(512))
                 continue
 
-        if appId == str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()):
+        if appId == str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0]):
             return 401
 
         userCookie = get_session(secretKey)

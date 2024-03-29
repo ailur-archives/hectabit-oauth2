@@ -29,6 +29,8 @@ CREATE TABLE logins (
     secret TEXT NOT NULL,
     code TEXT NOT NULL,
     nextcode TEXT NOT NULL,
+    refresh TEXT NOT NULL,
+    nextrefresh TEXT NOT NULL,
     creator INTEGER NOT NULL,
     openid TEXT NOT NULL
 );

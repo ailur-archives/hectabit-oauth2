@@ -9,47 +9,51 @@
   <h1>Sending data...</h1>
 
   <script>
-    // Function to parse URL parameters
-    function getUrlParameter(name) {
-      name = name.replace(/[[]/, '\\[').replace(/[\]]/, '\\]');
-      var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-      var results = regex.exec(location.search);
-      return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-    };
+    function oauth() {
+      // Function to parse URL parameters
+      function getUrlParameter(name) {
+        name = name.replace(/[[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+      };
 
-    // Get URL parameters
-    var client_id = getUrlParameter('client_id');
-    var redirect_uri = getUrlParameter('redirect_uri');
-    var response_type = getUrlParameter('response_type');
-    var state = getUrlParameter('state');
+      // Get URL parameters
+      var client_id = getUrlParameter('client_id');
+      var redirect_uri = getUrlParameter('redirect_uri');
+      var response_type = getUrlParameter('response_type');
+      var state = getUrlParameter('state');
 
-    // Get DONOTSHARE-secretkey from localStorage
-    var secret_key = localStorage.getItem("DONOTSHARE-secretkey");
+      // Get DONOTSHARE-secretkey from localStorage
+      var secret_key = localStorage.getItem("DONOTSHARE-secretkey");
 
-    // Create data object to send
-    var data = {
-      appId: client_id,
-      secretKey: secret_key
-    };
+      // Create data object to send
+      var data = {
+        appId: client_id,
+        secretKey: secret_key
+      };
 
-    // Send data to example.org using POST request
-    fetch("https://auth.hectabit.org/api/auth", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    })
-    .then(response => {
+      // Send data to example.org using POST request
+      fetch("https://auth.hectabit.org/api/auth", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => {
         async function doStuff() {
-            let code = await response.text()
-            window.location.replace(redirect_uri + "?code=" + code + "&state=" + state)
+          let code = await response.text()
+          console.log(code)
+          console.log(redirect_uri + "?code=" + code + "&state=" + state)
         }
         doStuff()
-    })
-    .catch(error => {
-      alert("Error sending data: " + error.message);
-    });
+      })
+      .catch(error => {
+        alert("Error sending data: " + error.message);
+      });
+    }
+    //oauth()
   </script>
 </body>
 </html>
