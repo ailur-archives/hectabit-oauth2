@@ -75,6 +75,7 @@ def check_username_taken(username):
 
 async def oauth2_token_refresh(openid, appId):
     while True:
+        await asyncio.sleep(3600)
         conn = get_db_connection()
 
         # Fetch required data in a single query
@@ -102,7 +103,6 @@ async def oauth2_token_refresh(openid, appId):
             conn.execute("UPDATE logins SET code = ?, nextcode = ?, secret = ?, nextsecret = ?, openid = ?, nextopenid = ? WHERE appId = ? AND openid = ?", (nextcode, str(secrets.token_hex(512)), nextsecret, str(secrets.token_hex(512)), nextopenid, str(jwt_token), str(appId), str(openid)))
             conn.commit()
             conn.close()
-            await asyncio.sleep(3600)
         else:
             conn.close()
             return
