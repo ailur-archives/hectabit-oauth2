@@ -79,7 +79,9 @@ async def oauth2_token_refresh(openid, appId):
         conn = get_db_connection()
 
         # Fetch required data in a single query
-        login_data = conn.execute("SELECT nextcode, nextsecret, nextopenid FROM logins WHERE appId = ? AND openid = ?", (str(appId), str(openid))).fetchone()
+        login_data = conn.execute("SELECT nextcode, nextsecret, nextopenid, creator FROM logins WHERE appId = ? AND openid = ?", (str(appId), str(openid))).fetchone()
+
+        user = get_user(int(login_data[3]))
 
         datatemplate = {
             "sub": user["username"],
