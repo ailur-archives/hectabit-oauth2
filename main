@@ -76,11 +76,20 @@ async def oauth2_token_refresh(openid, appId):
     while True:
         print(openid, appId)
         conn = get_db_connection()
-        conn.execute("UPDATE logins SET code = ?, nextcode = ? WHERE appId = ? AND openid = ?", (str(conn.execute("SELECT nextcode FROM logins WHERE appId = ? AND openid = ?", (str(appId), str(openid))).fetchone()[0]), str(secrets.token_hex(512)), str(appId), str(openid)))
-        conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND openid = ?", (str(conn.execute("SELECT nextsecret FROM logins WHERE appId = ? AND openid = ?", (str(appId), str(openid))).fetchone()[0])), str(secrets.token_hex(512)), str(appId), str(openid))
-        conn.commit()
-        conn.close()
-        await asyncio.sleep(3600)
+
+        # Fetch required data in a single query
+        login_data = conn.execute("SELECT nextcode, nextsecret FROM logins WHERE appId = ? AND openid = ?", (str(appId), str(openid))).fetchone()
+
+        if login_data:
+            nextcode = login_data[0]
+            nextsecret = login_data[1]
+            conn.execute("UPDATE logins SET code = ?, nextcode = ?, secret = ?, nextsecret = ? WHERE appId = ? AND openid = ?", (nextcode, str(secrets.token_hex(512)), nextsecret, str(secrets.token_hex(512)), str(appId), str(openid)))
+            conn.commit()
+            conn.close()
+            await asyncio.sleep(3600)
+        else:
+            conn.close()
+            return
 
 # Disable CORS
 @app.after_request
@@ -250,29 +259,26 @@ async def apitokenexchange():
 
         conn = get_db_connection()
 
-        print(str(appId))
-        appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
-        if not str(appidcheck) == str(appId):
+        # Fetch required data in a single query
+        oauth_data = conn.execute("SELECT appId, secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()
+        if not oauth_data or oauth_data["appId"] != appId or oauth_data["secret"] != secret:
             return {}, 401
-
-        secretcheck = str(conn.execute("SELECT secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
-        if not str(secretcheck) == str(secret):
-            return {}, 402
 
         newkey = str(secrets.token_hex(512))
         conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(newkey), str(secrets.token_hex(512)), str(appId), str(secret)))
-        openid = str(conn.execute("SELECT openid FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()[0])
 
-        access_token = {
-            "access_token": str(conn.execute("SELECT code FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()[0]),
-            "token_type": "bearer",
-            "expires_in": 3600,
-            "refresh_token": newkey,
-            "id_token": openid
-        }
+        # Fetch openid and code in a single query
+        login_data = conn.execute("SELECT openid, code FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()
 
-        if access_token:
-            asyncio.create_task(oauth2_token_refresh(openid, appId))
+        if login_data:
+            access_token = {
+                "access_token": str(login_data["code"]),
+                "token_type": "bearer",
+                "expires_in": 3600,
+                "refresh_token": newkey,
+                "id_token": str(login_data["openid"])
+            }
+            asyncio.create_task(oauth2_token_refresh(login_data["openid"], appId))
             return access_token, 200
         else:
             return {}, 400
