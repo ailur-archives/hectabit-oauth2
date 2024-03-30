@@ -266,8 +266,21 @@ async def apiauthenticate():
 
         jwt_token = jwt.encode(datatemplate, SECRET_KEY, algorithm='HS256')
 
-        conn.execute("INSERT INTO logins (appId, secret, nextsecret, code, nextcode, creator, openid) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(jwt_token)))
+        datatemplate2 = {
+            "sub": user["username"],
+            "iss": "https://auth.hectabit.org",
+            "name": user["username"],
+            "aud": appId,
+            "exp": time.time() + 7200,
+            "iat": time.time() + 3600,
+            "auth_time": time.time(),
+            "nonce": str(secrets.token_hex(512))
+        }
+
+        nextjwt_token = jwt.encode(datatemplate2, SECRET_KEY, algorithm='HS256')
+
+        conn.execute("INSERT INTO logins (appId, secret, nextsecret, code, nextcode, creator, openid, nextopenid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(jwt_token), str(nextjwt_token)))
 
         conn.commit()
         conn.close()
