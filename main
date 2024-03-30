@@ -279,7 +279,7 @@ async def apiauthenticate():
 
         nextjwt_token = jwt.encode(datatemplate2, SECRET_KEY, algorithm='HS256')
 
-        conn.execute("INSERT INTO logins (appId, secret, nextsecret, code, nextcode, creator, openid, nextopenid) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        conn.execute("INSERT INTO logins (appId, secret, nextsecret, code, nextcode, creator, openid, nextopenid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(jwt_token), str(nextjwt_token)))
 
         conn.commit()
