@@ -75,7 +75,6 @@ def check_username_taken(username):
 
 async def oauth2_token_refresh(openid, appId):
     while True:
-        print(openid, appId)
         conn = get_db_connection()
 
         # Fetch required data in a single query
@@ -232,10 +231,13 @@ async def apiopeniduserinfo():
         userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token),)).fetchone()[0])
         user = get_user(userid)
 
+        conn.close()
+
         datatemplate = {
             "sub": user["username"],
             "name": user["username"]
         }
+
         return datatemplate
 
 @app.route("/api/auth", methods=("GET", "POST"))
@@ -250,7 +252,6 @@ async def apiauthenticate():
         conn = get_db_connection()
         secretkey = str(secrets.token_hex(512))
 
-        print(appId)
         appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
         if not str(appidcheck) == str(appId):
             return {}, 401
@@ -312,6 +313,8 @@ async def apitokenexchange():
 
         # Fetch openid and code in a single query
         login_data = conn.execute("SELECT openid, code FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()
+
+        conn.close()
 
         if login_data:
             access_token = {
