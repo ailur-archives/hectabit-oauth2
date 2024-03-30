@@ -228,7 +228,7 @@ async def apiopeniduserinfo():
         access_token = request.headers.get('Authorization').split(' ')[1]
 
         conn = get_db_connection()
-        userid = int(conn.execute("SELECT creator FROM logins WHERE openid = ?", (str(access_token),)).fetchone()[0])
+        userid = int(conn.execute("SELECT creator FROM logins WHERE code = ?", (str(access_token),)).fetchone()[0])
         user = get_user(userid)
 
         conn.close()
