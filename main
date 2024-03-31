@@ -328,22 +328,22 @@ async def apitokenexchange():
 
         if verifycode:
             if str(login_data["pkce"]) == "none":
-                return 400
+                return {}, 400
             else:
                 if str(login_data["pkcemethod"]) == "S256":
-                    if str(sha256_base64(code_verify)) != str(login_data["code"]):
-                        return 403
+                    if str(sha256_base64(code_verify)) != str(login_data["pkce"]):
+                        return {}, 403
                 elif str(login_data["pkcemethod"]) == "plain":
-                    if str(code_verify) != str(login_data["code"]):
-                        return 403
+                    if str(code_verify) != str(login_data["pkce"]):
+                        return {}, 403
                 else:
-                    return 501
+                    return {}, 501
         else:
             if not oauth_data["secret"] == secret:
                 return {}, 401
 
         newkey = str(secrets.token_hex(512))
-        conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(newkey), str(secrets.token_hex(512)), str(appId), str(secret)))
+        conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(newkey), str(secrets.token_hex(512)), str(appId), str(code)))
 
         conn.close()
 
