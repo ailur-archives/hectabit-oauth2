@@ -339,7 +339,7 @@ async def apitokenexchange():
                 else:
                     return 501
         else:
-            if not oauth_data["secret"] != secret:
+            if not oauth_data["secret"] == secret:
                 return {}, 401
 
         newkey = str(secrets.token_hex(512))
