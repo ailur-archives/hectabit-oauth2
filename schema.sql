@@ -31,7 +31,9 @@ CREATE TABLE logins (
     code TEXT NOT NULL,
     nextcode TEXT NOT NULL,
     creator INTEGER NOT NULL,
-    openid TEXT NOT NULL
+    openid TEXT NOT NULL,
+    pkce TEXT NOT NULL,
+    pkcemethod TEXT NOT NULL
 );
 
 CREATE TABLE oauth (

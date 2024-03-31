@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+import hashlib
+import base64
 import jwt
 import os
 import sqlite3
@@ -30,6 +32,12 @@ if SECRET_KEY == "supersecretkey" or SECRET_KEY == "placeholder":
 # Define Quart
 app = Quart(__name__)
 app.config["SECRET_KEY"] = SECRET_KEY
+
+# Hash creation function
+def sha256_base64(s: str) -> str:
+    hashed = hashlib.sha256(s.encode()).digest()
+    encoded = base64.urlsafe_b64encode(hashed).rstrip(b'=').decode()
+    return encoded
 
 # Database functions
 def get_db_connection():
@@ -246,6 +254,8 @@ async def apiauthenticate():
         data = await request.get_json()
         secretKey = data["secretKey"]
         appId = data["appId"]
+        code = data["code"]
+        codemethod = data["codemethod"]
 
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
@@ -282,8 +292,8 @@ async def apiauthenticate():
 
         nextjwt_token = jwt.encode(datatemplate2, SECRET_KEY, algorithm='HS256')
 
-        conn.execute("INSERT INTO logins (appId, secret, nextsecret, code, nextcode, creator, openid, nextopenid) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(jwt_token), str(nextjwt_token)))
+        conn.execute("INSERT INTO logins (appId, secret, nextsecret, code, nextcode, creator, openid, nextopenid, pkce, pkcemethod) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (str(appId), str(secretkey), str(secrets.token_hex(512)), str(secrets.token_hex(512)), str(secrets.token_hex(512)), int(user["id"]), str(jwt_token), str(nextjwt_token), str(code), str(codemethod)))
 
         conn.commit()
         conn.close()
@@ -301,12 +311,31 @@ async def apitokenexchange():
         appId = data["client_id"]
         code = data["code"]
 
+        if "code_verifier" in data:
+            code_verify = data["code_verifier"]
+            verifycode = true
+        else:
+            verifycode = false
+
         conn = get_db_connection()
 
         # Fetch required data in a single query
-        oauth_data = conn.execute("SELECT appId, secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()
+        oauth_data = conn.execute("SELECT appId, secret, pkce, pkcemethod FROM oauth WHERE appId = ?", (str(appId),)).fetchone()
         if not oauth_data or oauth_data["appId"] != appId or oauth_data["secret"] != secret:
             return {}, 401
+
+        if verifycode:
+            if str(oauth_data["pkce"]) == "none":
+                return 400
+            else:
+                if str(oauth_data["pkcemethod"]) == "S256":
+                    if str(sha256_base64(code_verify)) != str(oauth_data["code"]):
+                        return 403
+                elif str(oauth_data["pkcemethod"]) == "plain":
+                    if str(code_verify) != str(oauth_data["code"]):
+                        return 403
+                else:
+                    return 501
 
         newkey = str(secrets.token_hex(512))
         conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(newkey), str(secrets.token_hex(512)), str(appId), str(secret)))
