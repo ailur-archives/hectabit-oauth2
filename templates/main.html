@@ -10,19 +10,21 @@
 
   <script>
     function oauth() {
-      // Function to parse URL parameters
-      function getUrlParameter(name) {
-        name = name.replace(/[[]/, '\\[').replace(/[\]]/, '\\]');
-        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-        var results = regex.exec(location.search);
-        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-      };
+      const urlParams = new URLSearchParams(window.location.search);
 
       // Get URL parameters
-      var client_id = getUrlParameter('client_id');
-      var redirect_uri = getUrlParameter('redirect_uri');
-      var response_type = getUrlParameter('response_type');
-      var state = getUrlParameter('state');
+      var client_id = urlParams.get('client_id');
+      var redirect_uri = urlParams.get('redirect_uri');
+      var response_type = urlParams.get('response_type');
+      var state = urlParams.get('state');
+
+      if (urlParams.has('code_challenge')) {
+          code = urlParams.get('code_challenge');
+          codemethod = urlParams.get('code_challenge_method');
+      } else {
+          code = "none"
+          codemethod = "none"
+      }
 
       // Get DONOTSHARE-secretkey from localStorage
       var secret_key = localStorage.getItem("DONOTSHARE-secretkey");
@@ -30,7 +32,9 @@
       // Create data object to send
       var data = {
         appId: client_id,
-        secretKey: secret_key
+        secretKey: secret_key,
+        code: code,
+        codemethod: codemethod
       };
 
       // Send data to example.org using POST request
