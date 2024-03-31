@@ -32,6 +32,7 @@ CREATE TABLE logins (
     nextcode TEXT NOT NULL,
     creator INTEGER NOT NULL,
     openid TEXT NOT NULL,
+    nextopenid TEXT NOT NULL,
     pkce TEXT NOT NULL,
     pkcemethod TEXT NOT NULL
 );
