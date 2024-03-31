@@ -307,7 +307,6 @@ async def apiauthenticate():
 async def apitokenexchange():
     if request.method == "POST":
         data = await request.form
-        secret = data["client_secret"]
         appId = data["client_id"]
         code = data["code"]
 
@@ -315,13 +314,14 @@ async def apitokenexchange():
             code_verify = data["code_verifier"]
             verifycode = True
         else:
+            secret = data["client_secret"]
             verifycode = False
 
         conn = get_db_connection()
 
         # Fetch required data in a single query
         oauth_data = conn.execute("SELECT appId, secret FROM oauth WHERE appId = ?", (str(appId),)).fetchone()
-        if not oauth_data or oauth_data["appId"] != appId or oauth_data["secret"] != secret:
+        if not oauth_data or oauth_data["appId"] != appId:
             return {}, 401
 
         login_data = conn.execute("SELECT openid, code, pkce, pkcemethod FROM logins WHERE appId = ? AND secret = ?", (str(appId), str(code))).fetchone()
@@ -338,6 +338,9 @@ async def apitokenexchange():
                         return 403
                 else:
                     return 501
+        else:
+            if not oauth_data["secret"] != secret:
+                return {}, 401
 
         newkey = str(secrets.token_hex(512))
         conn.execute("UPDATE logins SET secret = ?, nextsecret = ? WHERE appId = ? AND secret = ?", (str(newkey), str(secrets.token_hex(512)), str(appId), str(secret)))
