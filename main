@@ -313,9 +313,9 @@ async def apitokenexchange():
 
         if "code_verifier" in data:
             code_verify = data["code_verifier"]
-            verifycode = true
+            verifycode = True
         else:
-            verifycode = false
+            verifycode = False
 
         conn = get_db_connection()
 
