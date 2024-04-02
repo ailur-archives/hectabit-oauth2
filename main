@@ -579,13 +579,13 @@ async def signup():
 async def logout():
     return await render_template("logout.html")
 
-@app.route("/homeserver")
-async def homeserver():
-    return await render_template("homeserver.html")
-
 @app.route("/app")
 async def mainapp():
     return await render_template("main.html")
+
+@app.route("/dashboard")
+async def dashboard():
+    return await render_template("dashboard.html")
 
 @app.route("/.well-known/openid-configuration")
 async def openid():
