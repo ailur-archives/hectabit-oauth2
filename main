@@ -378,7 +378,7 @@ async def apideleteauth():
             return 400
         else:
             try:
-                conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"]))
+                conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"])))
             except:
                 pass
             else:
