@@ -360,6 +360,29 @@ async def apitokenexchange():
         else:
             return {}, 400
 
+@app.route("/api/deleteauth", methods=("GET", "POST"))
+async def apideleteauth():
+    if request.method == "POST":
+        data = await request.get_json()
+        appId = data["appId"]
+        secretKey = data["secretKey"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+
+        conn = get_db_connection()
+        try:
+            conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"]))
+        except:
+            return 400
+        else:
+            try:
+                conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"]))
+            except:
+                pass
+            else:
+                return 200
+
 @app.route("/api/newauth", methods=("GET", "POST"))
 async def apicreateauth():
     if request.method == "POST":
@@ -396,6 +419,29 @@ async def apicreateauth():
         }
         return secretkey, 200
 
+@app.route("/api/listauth", methods=("GET", "POST"))
+async def apiauthlist():
+    if request.method == "POST":
+        data = await request.get_json()
+        secretKey = data["secretKey"]
+
+        userCookie = get_session(secretKey)
+        user = get_user(userCookie["id"])
+
+        conn = get_db_connection()
+        oauths = conn.execute("SELECT * FROM oauth WHERE creator = ? ORDER BY id DESC;", (user["id"],)).fetchall()
+        conn.close()
+
+        datatemplate = []
+
+        for i in oauths:
+            template = {
+                "appId": i["appId"]
+            }
+            datatemplate.append(template)
+
+        return datatemplate, 200
+
 @app.route("/api/deleteaccount", methods=("GET", "POST"))
 async def apideleteaccount():
     if request.method == "POST":
@@ -406,12 +452,34 @@ async def apideleteaccount():
         user = get_user(userCookie["id"])
 
         conn = get_db_connection()
-        conn.execute("DELETE FROM userdata WHERE creator = ?", (userCookie["id"],))
-        conn.commit()
-        conn.close()
+        try:
+            conn.execute("DELETE FROM userdata WHERE creator = ?", (userCookie["id"],))
+        except:
+            pass
+        else:
+            pass
 
-        conn = get_db_connection()
-        conn.execute("DELETE FROM users WHERE id = ?", (userCookie["id"],))
+        try:
+            conn.execute("DELETE FROM logins WHERE creator = ?", (userCookie["id"],))
+        except:
+            pass
+        else:
+            pass
+
+        try:
+            conn.execute("DELETE FROM oauth WHERE creator = ?", (userCookie["id"],))
+        except:
+            pass
+        else:
+            pass
+
+        try:
+            conn.execute("DELETE FROM users WHERE id = ?", (userCookie["id"],))
+        except:
+            return {}, 400
+        else:
+            pass
+
         conn.commit()
         conn.close()
 

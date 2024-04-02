@@ -13,10 +13,17 @@
       const urlParams = new URLSearchParams(window.location.search);
 
       // Get URL parameters
-      var client_id = urlParams.get('client_id');
-      var redirect_uri = urlParams.get('redirect_uri');
-      var response_type = urlParams.get('response_type');
-      var state = urlParams.get('state');
+      if (urlParams.has('client_id')) {
+          var client_id = urlParams.get('client_id');
+          var redirect_uri = urlParams.get('redirect_uri');
+          var response_type = urlParams.get('response_type');
+      } else {
+          window.location.replace("/dashboard");
+      }
+
+      if (urlParams.has('state')) {
+          var state = urlParams.get('state');
+      }
 
       if (urlParams.has('code_challenge')) {
           code = urlParams.get('code_challenge');
