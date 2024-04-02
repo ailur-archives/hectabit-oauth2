@@ -1,5 +1,5 @@
-# 🍔 Burgernotes API docs
-Use the Burgernotes API to automate tasks, build your own client, and more!
+# 🍔 Burgerauth API docs
+Use the Burgerauth API to automate tasks, build your own client, and more!
 
 Headers should be: "Content-type: application/json; charset=UTF-8" for all POSTs
 
@@ -13,29 +13,6 @@ To prevent the server from knowing the encryption key, the password you provide 
 
 If you wish to change the user's password, set "passwordchange" to "yes" and "newpass" to the new hash.
 
-
-Some users use the legacy argon2id mode (by which i mean about 8, so only implement if you feel like it), and to implement argon2id functionality, you hash like this:
-```
-Parallelism should be 1
-
-Iterations should be 256
-
-Memory Allocated in bytes should be 512
-
-Length of Hash should be 32 bytes
-
-The output should be in the encoded format, not the hashed format
-
-Salt should be the SHA512 of the password
-```
-
-(Yes i know this is really bad practice, guess why we are replacing it)
-
-To test if SHA-3 or argon2 is used, just try the SHA-3 and if 422 gets returned try argon2.
-
-(For the sake of all of us, change the password to the SHA-3 hash)
-
-
 Password should be at least 8 characters, username must be under 20 characters and alphanumeric.
 
 If username is taken, error code 422 will return.
@@ -43,44 +20,60 @@ If username is taken, error code 422 will return.
 Assuming everything went correctly, the server will return a secret key.
 
 You'll need to store two things in local storage:
-- The secret key you just got, used to fetch notes, save stuff etc.
-- A SHA512 hashed password, used as encryption key
+- The secret key you just got, used to create oauth2 apps, delete them etc.
+- A SHA512 encryption key, for RSA compatible clients
 
-## 🔐 Encryption
+##   OAuth2
 
-Note content and title is encrypted using AES 256-bit.
+POST - /api/auth - interface directly with the burgerauth system, provide "secretKey, appId, code and codemethod"
 
-Encryption password is the SHA512 hashed password we talked about earlier.
+Code and Codemethod are only used for PKCE, if PKCE is not enabled set the value of both to "none"
+
+appId is the client ID used in the OAuth2 manager
+
+If it worked correctly, you should receive a code in plaintext
+
+POST - /api/tokenauth - OAuth2 token exchange endpoint
+
+PKCE:
+- Provide client_id, code, code_verifier
+- Code is the code that you received from /api/auth
+
+Secretkey:
+- Provide client_id, code, client_secret
+- code is the code that you received from /api/auth
+- client_secret is the client_secret shown once during oauth2 signup
+
+If it worked correctly, you should receive the following in JSON:
+```
+access_token = {
+    "access_token": (access token, currently unused),
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "refresh_token": (refresh token to use as a code for renewing the token after the expiration, provide as code in /api/tokenauth),
+    "id_token": (jwt encoded token revealing user data)
+}
+```
 
 ## 🕹️ Basic stuff
 
+GET - /api/version - get the system infomation of the running server
+
+POST - /api/auth - interface directly with the burgerauth system, provide "secretKey, appId, code and codemethod"
+
 POST - /api/userinfo - get user info such as username, provide "secretKey"
 
-POST - /api/listnotes - list notes, provide "secretKey"
-note titles will have to be decrypted.
+POST - /api/newauth - creates a new oauth2 app, provide "appId, secretKey". AppId is the client_id of the app.
 
-POST - /api/newnote - create a note, provide "secretKey" and "noteName"
-"noteName" should be encrypted.
+POST - /api/deleteauth - deletes a oauth2 app, provide "appId, secretKey". AppId is the client_id of the app.
 
-POST - /api/readnote - read notes, provide "secretKey" and "noteId"
-note content will have to be decrypted.
-
-POST - /api/editnote - edit notes, provide "secretKey", "noteId", "title", and "content"
-"content" should be encrypted.
-"title" is the first line of the note content, and should be encrypted.
-
-**(Deprecated ⚠️)** POST - /api/editnotetitle - edit note titles, provide "secretKey", "noteId", and "content"
-"content" should be encrypted.
-
-POST - /api/removenote - remove notes, provide "secretKey" and "noteId"
+POST - /api/listauth - lists all oauth2 apps, provide 'secretKey". Returns in JSON, in this format: "appId": (appId of app).
 
 ## ⚙️ More stuff
 
 POST - /api/deleteaccount - delete account, provide "secretKey"
-please display a warning before this action
 
-POST - /api/exportnotes - export notes, provide "secretKey"
-note content and title will have to be decrypted
+Please display a warning before this action
 
 POST - /api/sessions/list - show all sessions, provide "secretKey"
 
