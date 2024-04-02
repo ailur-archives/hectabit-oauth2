@@ -373,16 +373,13 @@ async def apideleteauth():
         conn = get_db_connection()
 
         try:
-            conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"])))
+            conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), int(user["id"])))
+            conn.commit()
+            conn.close()
         except:
-            return 400
+            return {}, 400
         else:
-            try:
-                conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"])))
-            except:
-                pass
-            else:
-                return 200
+            return {}, 200
 
 @app.route("/api/newauth", methods=("GET", "POST"))
 async def apicreateauth():
@@ -406,7 +403,7 @@ async def apicreateauth():
         except:
             print("New Oauth added with ID", appId)
         else:
-            return 401
+            return {}, 401
 
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
