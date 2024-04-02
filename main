@@ -371,8 +371,9 @@ async def apideleteauth():
         user = get_user(userCookie["id"])
 
         conn = get_db_connection()
+
         try:
-            conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"]))
+            conn.execute("DELETE FROM oauth WHERE appId = ? AND creator = ?", (str(appId), str(user["id"])))
         except:
             return 400
         else:
