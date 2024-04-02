@@ -430,7 +430,7 @@ async def apiauthlist():
         user = get_user(userCookie["id"])
 
         conn = get_db_connection()
-        oauths = conn.execute("SELECT * FROM oauth WHERE creator = ? ORDER BY id DESC;", (user["id"],)).fetchall()
+        oauths = conn.execute("SELECT * FROM oauth WHERE creator = ? ORDER BY creator DESC;", (user["id"],)).fetchall()
         conn.close()
 
         datatemplate = []
