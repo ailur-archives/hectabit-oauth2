@@ -9,6 +9,12 @@
   <p>Sending data...</p>
 
   <script>
+    if (localStorage.getItem("DONOTSHARE-secretkey") !== null) {
+      window.location.replace("/app" + window.location.search)
+      document.body.innerHTML = "Redirecting..."
+      throw new Error();
+    }
+
     function oauth() {
       const urlParams = new URLSearchParams(window.location.search);
 

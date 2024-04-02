@@ -1,3 +1,9 @@
+if (localStorage.getItem("DONOTSHARE-secretkey") === null) {
+    window.location.replace("/login")
+    document.body.innerHTML = "Redirecting..."
+    throw new Error();
+}
+
 function attempt() {
     if (document.getElementById("appidbox").value.match(/^[A-Za-z]+$/)) {
         fetch("https://auth.hectabit.org/api/newauth", {
