@@ -6,12 +6,12 @@ However, Burgerauth assumes all clients request all scopes in OAuth2 mode, as to
 
 ## Endpoints
 
-### RDIR - /rsakeyshare
+### RDIR - /aeskeyshare
 
-This one requires more explanation. This is used for clients who wish to have a RSA key unique to the account. To get this RSA Key, create a redirect like this in JS:
+This one requires more explanation. This is used for clients who wish to have a AES key unique to the account. To get this AES Key, create a redirect like this in JS:
 
 ```
-window.postMessage("JSON.stringify({"access_token": "ACCESS_TOKEN", "redirect_uri": "REDIRECT_URI"})", https://auth.hectabit.org/rsakeyshare);
+window.postMessage("JSON.stringify({"access_token": "ACCESS_TOKEN", "redirect_uri": "REDIRECT_URI"})", https://auth.hectabit.org/aeskeyshare);
 ```
 REDIRECT_URI is the correspondding URI where a Burgerauth LocalStorage acceptor is set up. Here is some JS code for a basic acceptor:
 
@@ -19,8 +19,8 @@ REDIRECT_URI is the correspondding URI where a Burgerauth LocalStorage acceptor 
 window.addEventListener(
   "message",
   (event) => {
-    if (event.origin !== "https://auth.hectabit.org/rsakeyshare") return;
-    localStorage.setItem("DONOTSHARE-rsakey", message)
+    if (event.origin !== "https://auth.hectabit.org/aeskeyshare") return;
+    localStorage.setItem("DONOTSHARE-aeskey", message)
   },
   false,
 );
