@@ -25,6 +25,8 @@ You'll need to store two things in local storage:
 
 ##   OAuth2
 
+RDIR - /login - start the oauth2 login process, see OAuth2.md
+
 POST - /api/auth - interface directly with the burgerauth system, provide "secretKey, appId, code and codemethod"
 
 Code and Codemethod are only used for PKCE, if PKCE is not enabled set the value of both to "none"
