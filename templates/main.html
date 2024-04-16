@@ -10,7 +10,7 @@
 
   <script>
     if (localStorage.getItem("DONOTSHARE-secretkey") === null) {
-      window.location.replace("/app" + window.location.search)
+      window.location.replace("/login" + window.location.search)
       document.body.innerHTML = "Redirecting..."
       throw new Error();
     }
