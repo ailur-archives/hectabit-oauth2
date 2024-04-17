@@ -25,6 +25,8 @@
           var response_type = urlParams.get('response_type');
       } else {
           window.location.replace("/dashboard");
+          document.body.innerHTML = "Redirecting..."
+          throw new Error();
       }
 
       if (urlParams.has('state')) {
