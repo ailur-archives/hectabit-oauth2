@@ -82,8 +82,10 @@ def check_username_taken(username):
     return post["id"]
 
 async def oauth2_token_refresh(openid, appId):
-    while True:
+    refreshes = 0
+    while refreshes != 720:
         await asyncio.sleep(3600)
+        refreshes = refreshes + 1
         conn = get_db_connection()
 
         # Fetch required data in a single query
