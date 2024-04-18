@@ -13,6 +13,7 @@ function attempt() {
             },
             body: JSON.stringify({
                 appId: document.getElementById("appidbox").value,
+                rdiruri: document.getElementById("rdiruribox").value,
                 secretKey: localStorage.getItem("DONOTSHARE-secretkey")
             })
         })
