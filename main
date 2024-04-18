@@ -248,7 +248,7 @@ async def apiopeniduserinfo():
 
         return datatemplate
 
-@app.route("/api/auth", methods=("GET"))
+@app.route("/api/auth")
 async def apiauthenticate():
     if request.method == "GET":
         secretKey = request.headers.get["secretKey"]
