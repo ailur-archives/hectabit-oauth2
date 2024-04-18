@@ -83,6 +83,7 @@ def check_username_taken(username):
 
 async def oauth2_token_refresh(openid, appId):
     refreshes = 0
+    nextopenid = "nil"
     while refreshes != 720:
         await asyncio.sleep(3600)
         refreshes = refreshes + 1
@@ -115,7 +116,13 @@ async def oauth2_token_refresh(openid, appId):
             conn.close()
         else:
             conn.close()
-            return
+            break
+
+    conn = get_db_connection()
+    conn.execute("DELETE FROM logins WHERE appId = ? AND openid = ?", (appId, nextopenid))
+    conn.commit()
+    conn.close()
+    # Finally, rest.
 
 # Disable CORS
 @app.after_request
