@@ -251,7 +251,7 @@ async def apiopeniduserinfo():
 @app.route("/api/auth")
 async def apiauthenticate():
     if request.method == "GET":
-        secretKey = request.headers.get["secretKey"]
+        secretKey = request.cookies.get["key"]
         appId = request.args.get["client_id"]
         code = request.args.get["code_challenge"]
         codemethod = request.args.get["code_challenge_method"]
