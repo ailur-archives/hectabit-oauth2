@@ -31,6 +31,8 @@
 
       if (urlParams.has('state')) {
           var state = urlParams.get('state');
+      } else {
+          state = "none"
       }
 
       if (urlParams.has('code_challenge')) {
@@ -43,34 +45,13 @@
 
       // Get DONOTSHARE-secretkey from localStorage
       var secret_key = localStorage.getItem("DONOTSHARE-secretkey");
-
-      // Create data object to send
-      var data = {
-        appId: client_id,
-        secretKey: secret_key,
-        code: code,
-        codemethod: codemethod
-      };
+      var now = new Date();
+      var expireTime = now.getTime() + (21 * 1000); // 21 seconds from now
+      var expires = new Date(expireTime).toUTCString();
+      document.cookie = "cookieName=cookieValue; expires=" + expires + "; path=/";
 
       // Send data to example.org using POST request
-      fetch("https://auth.hectabit.org/api/auth", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-      })
-      .then(response => {
-        async function doStuff() {
-          let code = await response.text()
-          console.log(code)
-          window.location.replace(redirect_uri + "?code=" + code + "&state=" + state)
-        }
-        doStuff()
-      })
-      .catch(error => {
-        alert("Error sending data: " + error.message);
-      });
+      window.location.replace("/api/auth?client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&code_challenge_method=" + codemethod + "&code_challenge=" + code + "&state=" state)
     }
     oauth()
   </script>
