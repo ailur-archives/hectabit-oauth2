@@ -48,7 +48,7 @@
       var now = new Date();
       var expireTime = now.getTime() + (21 * 1000); // 21 seconds from now
       var expires = new Date(expireTime).toUTCString();
-      document.cookie = "key=" + secret_key "; expires=" + expires + "; path=/";
+      document.cookie = "key=" + secret_key + "; expires=" + expires + "; path=/";
 
       // Send data to example.org using POST request
       window.location.replace("/api/auth?client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&code_challenge_method=" + codemethod + "&code_challenge=" + code + "&state=" + state)
