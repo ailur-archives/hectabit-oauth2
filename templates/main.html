@@ -1,26 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sending data...</title>
+<html><head>
+    <title>Login - Burgernotes</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" type="text/css" href="../static/css/style.css" media="">
+    <script src="../static/js/hash-wasm.js"></script>
+    <link rel="icon" href="../static/svg/favicon.svg">
+    <script>
+    if (window.location.href.endsWith('/index.html')) {
+        if (window.location.origin !== null) {
+            var currentUrl = window.location.href;
+            var newUrl = currentUrl.replace('/index.html', '');
+            window.location.href = newUrl;
+        }
+    }
+    </script>
 </head>
-<body>
-  <p>Sending data...</p>
 
-  <script>
+<body>
+    <p class="credit">Image by perga (@pergagreen on discord)</p>
+    <img src="/static/img/background.jpg" class="background">
+    <div class="inoutdiv">
+        <h2 class="w300">Authorise Application</h2>
+        <p id="statusBox">Loading...</p>
+        <br>
+        <div style="display: flex;justify-content: center;">
+            <button onclick="oauth();" style="margin: 0;width: 100%;margin-right: 2.5px;">Allow</button>
+            <button onclick="window.location.replace('https://www.hectabit.org');" style="margin: 0;width: 100%;margin-left: 2.5px;">Deny</button>
+        </div>
+    </div>
+    <script>
     if (localStorage.getItem("DONOTSHARE-secretkey") === null) {
       window.location.replace("/login" + window.location.search)
       document.body.innerHTML = "Redirecting..."
       throw new Error();
     }
 
-    function oauth() {
+    document.addEventListener("DOMContentLoaded", function() {
       const urlParams = new URLSearchParams(window.location.search);
+      var statusBox = document.getElementById("statusBox");
 
       // Get URL parameters
       if (urlParams.has('client_id')) {
           var client_id = urlParams.get('client_id');
+          statusBox.textContent = "Would you like to allow " + client_id + " to access your user infomation?"
           var redirect_uri = urlParams.get('redirect_uri');
           var response_type = urlParams.get('response_type');
       } else {
@@ -48,12 +71,13 @@
       var now = new Date();
       var expireTime = now.getTime() + (21 * 1000); // 21 seconds from now
       var expires = new Date(expireTime).toUTCString();
+    }
+
+    function oauth() {
       document.cookie = "key=" + secret_key + "; expires=" + expires + "; path=/";
 
       // Send data to example.org using POST request
       window.location.replace("/api/auth?client_id=" + client_id + "&redirect_uri=" + redirect_uri + "&code_challenge_method=" + codemethod + "&code_challenge=" + code + "&state=" + state)
     }
-    oauth()
   </script>
-</body>
-</html>
+</body></html>
