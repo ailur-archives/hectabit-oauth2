@@ -267,6 +267,10 @@ async def apiauthenticate():
         if not str(appidcheck) == str(appId):
             return {}, 401
 
+        rdircheck = str(conn.execute("SELECT rdiruri FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
+        if not str(rdircheck) == str(redirect_uri):
+            return {}, 401
+
         datatemplate = {
             "sub": user["username"],
             "iss": "https://auth.hectabit.org",
@@ -389,6 +393,7 @@ async def apicreateauth():
         appId = data["appId"]
         secretKey = data["secretKey"]
         secret = str(secrets.token_hex(512))
+        rdiruri = data["rdiruri"]
         conn = get_db_connection()
         while True:
             try:
@@ -409,8 +414,8 @@ async def apicreateauth():
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
 
-        conn.execute("INSERT INTO oauth (appId, creator, secret) VALUES (?, ?, ?)",
-                         (str(appId),int(user["id"]),str(secret)))
+        conn.execute("INSERT INTO oauth (appId, creator, secret, rdiruri) VALUES (?, ?, ?, ?)",
+                         (str(appId),int(user["id"]),str(secret),str(rdiruri)))
         conn.commit()
         conn.close()
         secretkey = {
