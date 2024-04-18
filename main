@@ -251,12 +251,12 @@ async def apiopeniduserinfo():
 @app.route("/api/auth")
 async def apiauthenticate():
     if request.method == "GET":
-        secretKey = request.cookies.get["key"]
-        appId = request.args.get["client_id"]
-        code = request.args.get["code_challenge"]
-        codemethod = request.args.get["code_challenge_method"]
-        redirect = request.args.get["redirect_uri"]
-        state = request.args.get["state"]
+        secretKey = request.cookies.get("key")
+        appId = request.args.get("client_id")
+        code = request.args.get("code_challenge")
+        codemethod = request.args.get("code_challenge_method")
+        redirect_uri = request.args.get("redirect_uri")
+        state = request.args.get("state")
 
         userCookie = get_session(secretKey)
         user = get_user(userCookie["id"])
@@ -300,7 +300,7 @@ async def apiauthenticate():
         conn.close()
 
         if secretkey:
-            return redirect(redirect_uri + "?code=" + secretkey + "&state=" + state), 200
+            return redirect(redirect_uri + "?code=" + secretkey + "&state=" + state), 302
         else:
             return {}, 400
 
