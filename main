@@ -12,6 +12,7 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 from werkzeug.security import generate_password_hash, check_password_hash
 from quart import Quart, render_template, request, url_for, flash, redirect, session, make_response, send_from_directory, stream_with_context, Response, request
+from urllib.parse import quote
 
 # Parse configuration file, and check if anything is wrong with it
 if not os.path.exists("config.ini"):
@@ -274,11 +275,11 @@ async def apiauthenticate():
 
         appidcheck = str(conn.execute("SELECT appId FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
         if not str(appidcheck) == str(appId):
-            return {}, 401
+            return "AppID is invalid", 401
 
         rdircheck = str(conn.execute("SELECT rdiruri FROM oauth WHERE appId = ?", (str(appId),)).fetchone()[0])
-        if not str(rdircheck) == str(redirect_uri):
-            return {}, 401
+        if not str(rdircheck) == str(quote(redirect_uri)):
+            return str(str(quote(redirect_uri)) + " is not " + str(rdircheck)), 401
 
         datatemplate = {
             "sub": user["username"],
@@ -424,7 +425,7 @@ async def apicreateauth():
         user = get_user(userCookie["id"])
 
         conn.execute("INSERT INTO oauth (appId, creator, secret, rdiruri) VALUES (?, ?, ?, ?)",
-                         (str(appId),int(user["id"]),str(secret),str(rdiruri)))
+                         (str(appId),int(user["id"]),str(secret),str(quote(rdiruri))))
         conn.commit()
         conn.close()
         secretkey = {
